@@ -53,4 +53,29 @@ describe("Given a URL to fetch", () => {
     await expect(fetchHtml("not-a-url")).rejects.toThrow(/invalid url/i);
     expect(mockFetch).not.toHaveBeenCalled();
   });
+
+  it("When the URL is not a wikipedia.org host, Then it throws before ever calling fetch (blocks SSRF to arbitrary/internal hosts)", async () => {
+    const mockFetch = vi.fn();
+    vi.stubGlobal("fetch", mockFetch);
+
+    await expect(fetchHtml("https://example.com/wiki/Example")).rejects.toThrow(/wikipedia/i);
+    await expect(fetchHtml("http://169.254.169.254/latest/meta-data")).rejects.toThrow(
+      /wikipedia/i
+    );
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it("When the URL is any wikipedia.org language subdomain over https, Then it is accepted", async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      text: () => Promise.resolve("<html>ok</html>"),
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    await expect(fetchHtml("https://fr.wikipedia.org/wiki/Exemple")).resolves.toBe(
+      "<html>ok</html>"
+    );
+  });
 });

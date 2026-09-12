@@ -13,6 +13,17 @@ export async function fetchHtml(url: string, timeoutMs = DEFAULT_TIMEOUT_MS): Pr
     throw new Error(`Invalid URL: "${url}"`);
   }
 
+  // This URL is fetched server-side on the caller's behalf, so an
+  // unrestricted fetch would let a visitor make this server issue requests
+  // to arbitrary/internal hosts (SSRF). Scoping to wikipedia.org over https
+  // matches the challenge's stated input (a Wikipedia page) and closes that
+  // off.
+  const isWikipediaHost =
+    parsed.hostname === "wikipedia.org" || parsed.hostname.endsWith(".wikipedia.org");
+  if (parsed.protocol !== "https:" || !isWikipediaHost) {
+    throw new Error(`Only https://*.wikipedia.org URLs are supported, got: "${url}"`);
+  }
+
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
