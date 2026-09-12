@@ -16,7 +16,10 @@ const nextConfig: NextConfig = {
   // function is missing it entirely -> "Cannot find module 'canvas'" at
   // request time, even though the build itself succeeds.
   outputFileTracingIncludes: {
-    "/api/generate": ["./node_modules/canvas/**/*"],
+    "/api/generate": [
+      "./node_modules/canvas/**/*",
+      "./src/lib/assets/fonts/**/*",
+    ],
   },
 };
 

@@ -33,6 +33,7 @@ Nothing else depends on Next.js — the pipeline is plain TypeScript/Node and is
 - **Chart output format**: PNG, rendered server-side with Chart.js via `chartjs-node-canvas` (a native `canvas` addon under the hood). This was a deliberate trade-off against a dependency-free SVG: PNG is a literal raster image file, at the cost of a native build dependency. See **Prerequisites** below — this is the one part of the setup that isn't pure `npm install`.
 - **Security**: the web app fetches a user-supplied URL server-side, which is a classic SSRF shape (a visitor could otherwise point it at an internal/metadata endpoint). `htmlFetcher.ts` only allows `https://*.wikipedia.org` — which is also just... what the challenge actually asks for.
 - **Wikipedia fetch etiquette**: requests carry a descriptive, non-identifying `User-Agent` (no personal info embedded), since Wikipedia's fetch etiquette throttles generic/default ones.
+- **Bundled font**: chart text is rendered with a bundled Roboto TTF (`src/lib/assets/fonts/`, OFL-1.1 licensed — see the accompanying `OFL.txt`), registered explicitly via `canvas`'s `registerFont`, instead of relying on whatever system font happens to be installed. A serverless runtime (Vercel) has no system fonts at all — without this, every label rendered as tofu boxes in production despite working fine locally, since a local machine always has some font to fall back to. Found by deploying and looking at the actual output, not by reasoning about it.
 
 ## Prerequisites
 
@@ -41,7 +42,10 @@ Nothing else depends on Next.js — the pipeline is plain TypeScript/Node and is
 - **macOS**: `brew install pkg-config cairo pango libpng jpeg giflib librsvg`
 - **Debian/Ubuntu**: `sudo apt-get install build-essential libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev`
 
-Without this, `npm install` will fail trying to compile `canvas`. (This repo's `next.config.ts` also marks `canvas`/`chartjs-node-canvas` as `serverExternalPackages` — without that, Next's bundler fails at request time with `Cannot find module as expression is too dynamic`, since `canvas` resolves its platform binary with a dynamic `require` the bundler can't analyze. Found this by actually running the web app end-to-end, not just by reasoning about it.)
+Without this, `npm install` will fail trying to compile `canvas`. On a serverless deploy (Vercel), two more things are needed, both already in `next.config.ts` and found only by actually deploying and testing, not by reasoning about the code:
+
+- `serverExternalPackages: ["canvas", "chartjs-node-canvas"]` — without it, Next's bundler fails at request time with `Cannot find module as expression is too dynamic`, since `canvas` resolves its platform binary with a dynamic `require` the bundler can't analyze.
+- `outputFileTracingIncludes` for `/api/generate`, covering `canvas`'s compiled binary and the bundled font — without it, Next's file tracer (which decides what ships in the deployed function, separately from bundling) can't statically discover either file, so the deployed function is missing them: `Cannot find module 'canvas'` at runtime despite a clean build, or a chart with unreadable text.
 
 ## How to run
 
