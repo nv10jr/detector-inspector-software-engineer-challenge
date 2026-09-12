@@ -49,4 +49,10 @@ describe("Given Wikipedia page HTML", () => {
     const tables = parseTables(html);
     expect(tables[0].rows[0][0]).toBe("Simsbury[1]");
   });
+
+  it("When a cell has an embedded <style> tag (Wikipedia's fraction markup does this), Then the style text is excluded", () => {
+    const html = `<table class="wikitable"><tr><th>Mark</th></tr><tr><td>1.482 m (<style>.frac{white-space:nowrap}</style>4 ft 10 in)</td></tr></table>`;
+    const tables = parseTables(html);
+    expect(tables[0].rows[0][0]).toBe("1.482 m (4 ft 10 in)");
+  });
 });

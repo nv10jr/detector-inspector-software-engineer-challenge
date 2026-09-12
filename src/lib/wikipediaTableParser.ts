@@ -29,7 +29,11 @@ export function parseTables(html: string): ParsedTable[] {
     const headerRowEl = rowsEls[headerRowIndex === -1 ? 0 : headerRowIndex];
     const headers = $(headerRowEl)
       .find("th, td")
-      .map((_, cell) => $(cell).text().replace(/\s+/g, " ").trim())
+      .map((_, cell) => {
+        const clone = $(cell).clone();
+        clone.find("style, script").remove();
+        return clone.text().replace(/\s+/g, " ").trim();
+      })
       .get();
 
     const rows: string[][] = [];
@@ -37,7 +41,11 @@ export function parseTables(html: string): ParsedTable[] {
       if (index === (headerRowIndex === -1 ? 0 : headerRowIndex)) return;
       const cells = $(tr)
         .find("td, th")
-        .map((_, cell) => $(cell).text().replace(/\s+/g, " ").trim())
+        .map((_, cell) => {
+          const clone = $(cell).clone();
+          clone.find("style, script").remove();
+          return clone.text().replace(/\s+/g, " ").trim();
+        })
         .get();
       if (cells.length > 0) rows.push(cells);
     });
